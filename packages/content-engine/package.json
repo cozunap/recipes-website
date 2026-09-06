@@ -1,0 +1,12 @@
+{
+  "name": "@builder/content-engine",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "dependencies": {
+    "lodash.get": "^4.4.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/lodash.get": "^4.4.9"
+  }
+}

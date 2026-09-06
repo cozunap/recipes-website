@@ -1,0 +1,23 @@
+name = "api"
+compatibility_date = "2024-03-20"
+
+# Hyperdrive (PostgreSQL Connection Pooling)
+[[hyperdrive]]
+binding = "DB"
+id = "YOUR_HYPERDRIVE_ID"
+
+# R2 Object Storage (Media Library)
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "builder-media-production"
+preview_bucket_name = "builder-media-preview"
+
+# Cloudflare Queues (Async tasks e.g., webhooks, resizing)
+[[queues.producers]]
+binding = "JOB_QUEUE"
+queue = "builder-jobs"
+
+[[queues.consumers]]
+queue = "builder-jobs"
+max_batch_size = 10
+max_batch_timeout = 5
