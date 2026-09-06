@@ -1,19 +1,18 @@
-import { adminDb } from '@/lib/firebase/admin';
+import { db } from '@/lib/firebase/client';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { Renderer } from '@/components/renderer/Renderer';
 import { notFound } from 'next/navigation';
 
-// Next.js ISR settings
-export const revalidate = 60; // revalidate every 60 seconds at most, or on demand via API
+export const runtime = 'edge';
+export const revalidate = 60;
 
-export default async function PublicPage({ params }: { params: { slug: string[] } }) {
-  const pathSlug = '/' + params.slug.join('/');
+export default async function PublicPage({ params }: { params: Promise<{ slug: string[] }> }) {
+  const resolvedParams = await params;
+  const pathSlug = '/' + resolvedParams.slug.join('/');
 
   try {
-    // 1. Find the page metadata by slug
-    const pagesSnapshot = await adminDb.collection('pages')
-      .where('slug', '==', pathSlug)
-      .limit(1)
-      .get();
+    const q = query(collection(db, 'pages'), where('slug', '==', pathSlug));
+    const pagesSnapshot = await getDocs(q);
 
     if (pagesSnapshot.empty) {
       return notFound();
@@ -21,18 +20,14 @@ export default async function PublicPage({ params }: { params: { slug: string[] 
     
     const pageId = pagesSnapshot.docs[0].id;
 
-    // 2. Fetch the PUBLISHED version
-    const publishedDoc = await adminDb.collection('page_versions')
-      .doc(`${pageId}_published`)
-      .get();
+    const publishedDoc = await getDoc(doc(db, 'page_versions', `${pageId}_published`));
 
-    if (!publishedDoc.exists) {
-      return notFound(); // Maybe return a "Coming Soon" or 404
+    if (!publishedDoc.exists()) {
+      return notFound();
     }
 
     const pageData = publishedDoc.data();
 
-    // 3. Render the public site
     return (
       <div className="w-full min-h-screen">
         {pageData?.nodes?.map((node: any) => (

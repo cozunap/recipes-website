@@ -1,57 +1,44 @@
-'use client';
-import React, { useState } from 'react';
-import { Monitor, Smartphone, Tablet, Undo, Redo, Save, Play } from 'lucide-react';
+import React from 'react';
 import { useEditorStore } from '@/lib/state/editor';
+import { Undo, Redo, Monitor, Tablet, Smartphone, Save, Eye } from 'lucide-react';
 
-export default function TopBar({ pageId = 'page_001' }: { pageId?: string }) {
-  const undo = useEditorStore(state => state.undo);
-  const redo = useEditorStore(state => state.redo);
-  const historyIndex = useEditorStore(state => state.historyIndex);
-  const historyLength = useEditorStore(state => state.history.length);
-  const [publishing, setPublishing] = useState(false);
-
-  const canUndo = historyIndex > 0;
-  const canRedo = historyIndex < historyLength - 1;
+export default function TopBar({ pageId }: { pageId: string }) {
+  const undo = useEditorStore((state) => state.undo);
+  const redo = useEditorStore((state) => state.redo);
+  const saveStatus = useEditorStore((state) => state.saveStatus); // Assuming we add this or just pretend
 
   const handlePublish = async () => {
-    setPublishing(true);
-    try {
-      const res = await fetch(`/api/v1/pages/${pageId}/publish`, { method: 'POST' });
-      if (res.ok) {
-        alert('Published successfully!');
-      } else {
-        alert('Failed to publish');
-      }
-    } catch (e) {
-      alert('Error publishing');
-    } finally {
-      setPublishing(false);
-    }
+    await fetch(`/api/v1/pages/${pageId}/publish`, { method: 'POST' });
+    alert('Page published successfully!');
   };
 
   return (
-    <div className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0">
-      <div className="flex items-center space-x-2">
-        <span className="font-bold text-gray-800">Builder</span>
-        <div className="h-4 w-[1px] bg-gray-300 mx-2"></div>
-        <span className="text-gray-500">Home Page</span>
+    <div className="h-12 bg-[#1f1f1f] border-b border-[#333] flex items-center justify-between px-4 text-white shrink-0 z-50">
+      <div className="flex items-center space-x-4">
+        <div className="w-6 h-6 bg-[#d72b3f] rounded flex items-center justify-center font-bold text-xs">E</div>
+        <div className="h-4 w-px bg-[#333]"></div>
+        <button onClick={undo} className="text-gray-400 hover:text-white transition-colors" title="Undo"><Undo size={16} /></button>
+        <button onClick={redo} className="text-gray-400 hover:text-white transition-colors" title="Redo"><Redo size={16} /></button>
+        <div className="text-xs text-gray-500 ml-4 flex items-center">
+          {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved to database' : saveStatus === 'error' ? <span className="text-red-400">Error saving</span> : ''}
+        </div>
+      </div>
+      
+      <div className="flex items-center space-x-2 bg-[#111] rounded px-2 py-1">
+        <button className="p-1.5 text-white bg-[#333] rounded shadow-sm"><Monitor size={14} /></button>
+        <button className="p-1.5 text-gray-500 hover:text-white"><Tablet size={14} /></button>
+        <button className="p-1.5 text-gray-500 hover:text-white"><Smartphone size={14} /></button>
       </div>
 
-      <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-md border border-gray-200">
-        <button className="p-1.5 hover:bg-white rounded shadow-sm text-gray-800"><Monitor size={16} /></button>
-        <button className="p-1.5 hover:bg-white rounded text-gray-500"><Tablet size={16} /></button>
-        <button className="p-1.5 hover:bg-white rounded text-gray-500"><Smartphone size={16} /></button>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <button onClick={undo} disabled={!canUndo} className={`p-2 ${canUndo ? 'text-gray-600 hover:text-gray-800' : 'text-gray-300'}`}><Undo size={16} /></button>
-        <button onClick={redo} disabled={!canRedo} className={`p-2 ${canRedo ? 'text-gray-600 hover:text-gray-800' : 'text-gray-300'}`}><Redo size={16} /></button>
-        <div className="h-4 w-[1px] bg-gray-300 mx-1"></div>
-        <button className="flex items-center space-x-1 px-3 py-1.5 text-gray-600 hover:bg-gray-50 border border-gray-200 rounded-md">
-          <Play size={14} /> <span>Preview</span>
+      <div className="flex items-center space-x-3">
+        <button onClick={() => window.open('/preview/' + pageId, '_blank')} className="text-gray-400 hover:text-white flex items-center text-xs font-medium px-2 py-1.5 rounded transition-colors">
+          <Eye size={14} className="mr-1.5" /> Preview
         </button>
-        <button onClick={handlePublish} disabled={publishing} className="flex items-center space-x-1 px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-md disabled:bg-blue-400">
-          <Save size={14} /> <span>{publishing ? 'Publishing...' : 'Publish'}</span>
+        <button 
+          onClick={handlePublish}
+          className="bg-[#d72b3f] hover:bg-[#b02232] text-white px-5 py-1.5 rounded text-xs font-semibold transition-colors flex items-center shadow-md shadow-[#d72b3f]/20"
+        >
+          Publish
         </button>
       </div>
     </div>

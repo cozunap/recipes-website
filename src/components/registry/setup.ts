@@ -1,9 +1,11 @@
-import { registry } from "./index";
-import { ContainerDef } from "./components/Container";
-import { HeadingDef } from "./components/Heading";
+import { widgetRegistry } from '../builder/widgets/registry';
+import { HeadingWidget } from '../builder/widgets/components/HeadingWidget';
+import { ContainerWidget } from '../builder/widgets/components/ContainerWidget';
+import { GridWidget } from '../builder/widgets/components/GridWidget';
 
-// Initialize registry with base components
-registry.register(ContainerDef);
-registry.register(HeadingDef);
+// Register all widgets
+widgetRegistry.register(HeadingWidget);
+widgetRegistry.register(ContainerWidget);
+widgetRegistry.register(GridWidget);
 
-export { registry };
+export const registry = widgetRegistry;

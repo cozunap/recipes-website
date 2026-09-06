@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase/admin';
+import { db } from '@/lib/firebase/client';
+import { collection, getDocs, addDoc, query, where } from 'firebase/firestore';
+
+export const runtime = 'edge';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
     
-    let query: FirebaseFirestore.Query = adminDb.collection('websites');
-    if (projectId) {
-      query = query.where('projectId', '==', projectId);
-    }
+    const websitesRef = collection(db, 'websites');
+    const q = projectId ? query(websitesRef, where('projectId', '==', projectId)) : websitesRef;
     
-    const snapshot = await query.get();
+    const snapshot = await getDocs(q);
     const websites = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return NextResponse.json({ websites });
   } catch (error: any) {
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { name, projectId, domain } = body;
-    const docRef = await adminDb.collection('websites').add({
+    const docRef = await addDoc(collection(db, 'websites'), {
       name,
       projectId,
       domain,

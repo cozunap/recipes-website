@@ -1,31 +1,28 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase/admin';
+import { db } from '@/lib/firebase/client';
+import { doc, setDoc } from 'firebase/firestore';
+
+export const runtime = 'edge';
 
 export async function POST(
   request: Request,
-  { params }: { params: { pageId: string } }
+  { params }: { params: Promise<{ pageId: string }> }
 ) {
   try {
-    const { pageId } = params;
+    const resolvedParams = await params;
+    const pageId = resolvedParams.pageId;
     const body = await request.json();
     const { nodes, status } = body;
 
-    // TODO: Validate against PageSchema using Zod
-
-    // For the MVP, we just overwrite the draft document
-    // In a full version, we might push to a subcollection for version history
-    const docRef = adminDb.collection('page_versions').doc(`${pageId}_${status}`);
-    
-    await docRef.set({
+    await setDoc(doc(db, 'page_versions', `${pageId}_${status}`), {
       pageId,
       nodes,
-      status, // 'draft' | 'published'
+      status,
       updatedAt: new Date().toISOString(),
     });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Failed to save revision:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

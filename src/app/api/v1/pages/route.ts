@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase/admin';
+import { db } from '@/lib/firebase/client';
+import { collection, getDocs, addDoc, doc, setDoc, query, where } from 'firebase/firestore';
+
+export const runtime = 'edge';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const websiteId = searchParams.get('websiteId');
     
-    let query: FirebaseFirestore.Query = adminDb.collection('pages');
-    if (websiteId) {
-      query = query.where('websiteId', '==', websiteId);
-    }
+    const pagesRef = collection(db, 'pages');
+    const q = websiteId ? query(pagesRef, where('websiteId', '==', websiteId)) : pagesRef;
     
-    const snapshot = await query.get();
-    const pages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const snapshot = await getDocs(q);
+    const pages = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     return NextResponse.json({ pages });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -23,15 +24,14 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { name, websiteId, slug } = body;
-    const docRef = await adminDb.collection('pages').add({
+    const docRef = await addDoc(collection(db, 'pages'), {
       name,
       websiteId,
       slug,
       createdAt: new Date().toISOString()
     });
     
-    // Create initial blank draft
-    await adminDb.collection('page_versions').doc(`${docRef.id}_draft`).set({
+    await setDoc(doc(db, 'page_versions', `${docRef.id}_draft`), {
       pageId: docRef.id,
       nodes: [],
       status: 'draft',

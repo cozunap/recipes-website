@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useEditorStore } from '@/lib/state/editor';
+import { db } from '@/lib/firebase/client';
+import { doc, setDoc } from 'firebase/firestore';
 
 export function useAutosave(pageId: string) {
   const nodes = useEditorStore((state) => state.nodes);
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const setSaveStatus = useEditorStore((state) => state.setSaveStatus);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedRef = useRef(JSON.stringify(nodes));
 
@@ -13,7 +15,7 @@ export function useAutosave(pageId: string) {
     // Don't save if nothing changed
     if (currentNodesStr === lastSavedRef.current) return;
 
-    setSaveStatus('saving');
+    if (setSaveStatus) setSaveStatus('saving');
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -21,26 +23,23 @@ export function useAutosave(pageId: string) {
 
     timeoutRef.current = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/v1/pages/${pageId}/revisions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nodes, status: 'draft' })
+        await setDoc(doc(db, 'page_versions', `${pageId}_draft`), {
+          pageId,
+          nodes: JSON.parse(currentNodesStr),
+          status: 'draft',
+          updatedAt: new Date().toISOString(),
         });
         
-        if (!response.ok) throw new Error('Save failed');
-        
         lastSavedRef.current = currentNodesStr;
-        setSaveStatus('saved');
+        if (setSaveStatus) setSaveStatus('saved');
       } catch (error) {
         console.error('Autosave error:', error);
-        setSaveStatus('error');
+        if (setSaveStatus) setSaveStatus('error');
       }
     }, 1500); // 1.5s debounce
 
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [nodes, pageId]);
-
-  return saveStatus;
+  }, [nodes, pageId, setSaveStatus]);
 }
